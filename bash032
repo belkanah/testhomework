@@ -1,9 +1,17 @@
 #!/bin/bash
 PREFIX="${1:-NOT_SET}"
 INTERFACE="$2"
-regex=(^[1]?[0-9]?[0-9]?)||(^[2]?[0-5]?[0-5]?)
-#Или срабатывает через раз, если добавить еще или \n или \\n или  "\\n", проверка пропускает любой символ 
+#Или срабатывает через раз 
+regex=(^[1]?[0-9]?[0-9]$)||(^[2]?[0-5]?[0-5]$)||([^$])
+o=^$
 
+
+
+netcheck ()
+ {
+   echo "[*] IP : ${PREFIX}.${SUBNET}.${HOST}"
+   return arping -c 3 -i "$1" "$2.$3.$4" 2> /dev/null
+ }
 
 
 # Блок проверки прав рута
@@ -29,7 +37,7 @@ if [[ $SUBNET =~ $regex ]]&&[[ $HOST =~ $regex ]]; then
       echo "OK";
    
      else echo "You make an error. Subnet and host shold be in 1-255";
-     exit 1; #УБЕРУ out from cicle and work without fix
+     exit 1; # out from cicle and work without fix
 fi
 
 
@@ -40,46 +48,38 @@ if [[ -z "$INTERFACE" ]]; then
 fi
 
 
-if [[ $SUBNET =~ $regex ]]; then
-    # echo "first input in script ws \$SUBNET";
-    if [[ $HOST=~$regex ]]; then
+if ! [[ $SUBNET =~ $o ]]; then
+    
+    if ! [[ $HOST =~ $o ]]; then
       # if exist subnet 1 & host 1 true
-      #echo "is all true";
-      popingui $INTERFACE $PREFIX $SUBNET $HOST;
+      
+             netcheck $INTERFACE $PREFIX $SUBNET $HOST
     else 
       # if  subnet 1 host 0
-      #echo "is no HOST";
+      
      for HOST in {1..255}
         do
-                popingui $INTERFACE $PREFIX  $SUBNET $HOST;
-        done;
-     fi;
+             netcheck $INTERFACE $PREFIX  $SUBNET $HOST
+        done
+     fi
  else
-  if [[ $HOST =~ $regex ]]; then
+  if ! [[ $HOST =~ $o ]]; then
       # if subnet 0 host 1
-      #   echo "is no subnet";
+      
       for SUBNET in {1..255}
         do
-          popingui $INTERFACE $PREFIX $SUBNET $HOST;
+              netcheck $INTERFACE $PREFIX $SUBNET $HOST
         done
   else 
       # if subnet 0 host 0 
-      #   echo "is all null or invalid"
+      
       for SUBNET in {1..255}
         do
          	for HOST in {1..255}
-        	do
-		popingui $INTERFACE $PREFIX $SUBNET $HOST
+         	do
+		netcheck INTERFACE PREFIX SUBNET HOST
                 done
          done
-    fi;
+    fi
 
-fi;
-
-
-# Я пытаюсь использовать функцию и не могу подобрать синтаксис,как передать аргументы
-popingui()
- {
-   echo "[*] IP : ${PREFIX}.${SUBNET}.${HOST}"
-   arping -c 3 -i "$INTERFACE" "${PREFIX}.${SUBNET}.${HOST}" 2> /dev/null
- }
+fi
